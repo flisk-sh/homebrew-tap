@@ -29,7 +29,8 @@ linux_arm64="$(sha flisk-linux-arm64)"
 linux_amd64="$(sha flisk-linux-amd64)"
 engine="$(sha flisk-cli-engine.tar.gz)"
 
-base="$releases/download/v#{version}"
+# The literal tag, because `version` is empty inside a resource block.
+base="$releases/download/$tag"
 mkdir -p Formula
 cat >Formula/flisk.rb <<EOF
 # Written by scripts/update-formula.sh. Do not edit by hand.
