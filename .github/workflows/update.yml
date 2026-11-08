@@ -72,17 +72,17 @@ jobs:
         run: brew install flisk-sh/tap/flisk
       - name: Test
         run: brew test flisk-sh/tap/flisk
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - name: Run the installed CLI and find its engine
+        shell: bash
         env:
           VERSION: ${{ needs.candidate.outputs.version }}
         run: |
           flisk --version | grep -F "$VERSION"
           cd "$(mktemp -d)"
-          flisk project --yes --quiet 2>&1 | tee project.log
-          if grep -q "runtime assets not found" project.log; then
-            echo "the installed binary did not find flisk-cli" >&2
-            exit 1
-          fi
+          flisk project --yes --quiet
+          # Copied from flisk-cli, which the binary finds next to its own path.
+          test -f shared-platform-engineering/docker-templates/install-deps.sh
 
   publish:
     needs: [candidate, test]
