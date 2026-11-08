@@ -1,0 +1,107 @@
+name: Update and test the formula
+
+# Each release of flisk-sh/releases is picked up here, tested on every
+# platform, and only then pushed. No token from another repository is needed.
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-formula-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.write.outputs.changed }}
+      version: ${{ steps.write.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Write the formula for the latest release
+        id: write
+        run: |
+          version="$(bash scripts/update-formula.sh)"
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          if git diff --quiet -- Formula/flisk.rb; then
+            echo "changed=false" >>"$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >>"$GITHUB_OUTPUT"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: formula
+          path: Formula/flisk.rb
+          if-no-files-found: error
+
+  test:
+    needs: candidate
+    if: needs.candidate.outputs.changed == 'true' || github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_ANALYTICS: "1"
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: formula
+          path: Formula
+      - name: Put Homebrew on the path
+        if: runner.os == 'Linux'
+        run: echo "/home/linuxbrew/.linuxbrew/bin" >>"$GITHUB_PATH"
+      - name: Tap this checkout
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/flisk.rb
+          git commit -m "candidate" --allow-empty
+          brew tap flisk-sh/tap "$GITHUB_WORKSPACE"
+      - name: Install
+        run: brew install flisk-sh/tap/flisk
+      - name: Test
+        run: brew test flisk-sh/tap/flisk
+      - name: Run the installed CLI and find its engine
+        env:
+          VERSION: ${{ needs.candidate.outputs.version }}
+        run: |
+          flisk --version | grep -F "$VERSION"
+          cd "$(mktemp -d)"
+          flisk project --yes --quiet 2>&1 | tee project.log
+          if grep -q "runtime assets not found" project.log; then
+            echo "the installed binary did not find flisk-cli" >&2
+            exit 1
+          fi
+
+  publish:
+    needs: [candidate, test]
+    if: needs.candidate.outputs.changed == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: formula
+          path: Formula
+      - name: Push the tested formula
+        env:
+          VERSION: ${{ needs.candidate.outputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/flisk.rb
+          git commit -s -m "flisk $VERSION"
+          git push
