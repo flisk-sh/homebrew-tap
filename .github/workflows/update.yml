@@ -84,24 +84,52 @@ jobs:
           # Copied from flisk-cli, which the binary finds next to its own path.
           test -f shared-platform-engineering/docker-templates/install-deps.sh
 
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - run: node --test scripts/check-publish-workflow.test.mjs
+      - run: node scripts/check-publish-workflow.mjs
+
   publish:
     needs: [candidate, test]
     if: needs.candidate.outputs.changed == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: formula
           path: Formula
-      - name: Push the tested formula
+      - name: Open a PR for the tested formula and merge it after GEL
         env:
           VERSION: ${{ needs.candidate.outputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="bot/flisk-$VERSION"
+          git checkout -B "$branch"
           git add Formula/flisk.rb
           git commit -s -m "flisk $VERSION"
-          git push
+          git push --force origin "$branch"
+          body="Tested formula update for flisk $VERSION. The candidate was installed and tested on macOS (arm64 and Intel) and Linux before this PR was opened."
+          if gh pr view "$branch" --json number >/dev/null 2>&1; then
+            gh pr edit "$branch" --title "flisk $VERSION" --body "$body"
+          else
+            gh pr create --base main --head "$branch" --title "flisk $VERSION" --body "$body"
+          fi
+          # A direct push to main cannot carry the required GEL check; wait for the PR's checks first.
+          if ! gh pr merge "$branch" --auto --squash; then
+            gh pr checks "$branch" --watch --fail-fast --interval 30
+            gh pr merge "$branch" --squash --delete-branch
+          fi
