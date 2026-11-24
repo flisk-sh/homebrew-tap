@@ -2,34 +2,34 @@
 class Flisk < Formula
   desc "Run your whole app locally with one command"
   homepage "https://flisk.sh"
-  version "1.4.73"
+  version "1.4.74"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/flisk-sh/releases/releases/download/v1.4.73/flisk-darwin-arm64"
-      sha256 "663c484507726d933b7357004a87ccd500aa4ef4f830684859201bb1cebeb557"
+      url "https://github.com/flisk-sh/releases/releases/download/v1.4.74/flisk-darwin-arm64"
+      sha256 "643ddeba3cf8f33d5a08bcc6281e4c60088c8a03f34195ddcb9732f859af9215"
     end
     on_intel do
-      url "https://github.com/flisk-sh/releases/releases/download/v1.4.73/flisk-darwin-amd64"
-      sha256 "afb63394531206e750b6eca26c6d4c1f303179f8a9ce54089b903a98d24215ee"
+      url "https://github.com/flisk-sh/releases/releases/download/v1.4.74/flisk-darwin-amd64"
+      sha256 "b15feb7c1496651cf22c5033d338611a80576047e7ac3677afb60e4f4b033bb2"
     end
   end
 
   on_linux do
     on_arm do
-      url "https://github.com/flisk-sh/releases/releases/download/v1.4.73/flisk-linux-arm64"
-      sha256 "59b3be45e78af0ed3ec7090aa192715c91c92f48725d0711f527797052b7d907"
+      url "https://github.com/flisk-sh/releases/releases/download/v1.4.74/flisk-linux-arm64"
+      sha256 "7699a09b13d5672484b076dd195a6edfe2affb2f38b30c11cc881cc517c92ecb"
     end
     on_intel do
-      url "https://github.com/flisk-sh/releases/releases/download/v1.4.73/flisk-linux-amd64"
-      sha256 "6cc8ba925d910ff8df7acabb9eeea3cc8250d7b3ffac75f48271a43fe55f28c3"
+      url "https://github.com/flisk-sh/releases/releases/download/v1.4.74/flisk-linux-amd64"
+      sha256 "bcf53da81bf3117fd976fbd000926a08ed3d0448ebee501666ac72f18cdf5e42"
     end
   end
 
   resource "engine" do
-    url "https://github.com/flisk-sh/releases/releases/download/v1.4.73/flisk-cli-engine.tar.gz"
-    sha256 "df2e0c4c8f3b28506d50ad6fe6f55c8abc856dbf30f7fbe6b4ab91cee414a38e"
+    url "https://github.com/flisk-sh/releases/releases/download/v1.4.74/flisk-cli-engine.tar.gz"
+    sha256 "b3d321a2d8298a01939ca997af114bdfcc38f7d58220d8e8029024af99e6f1c5"
   end
 
   # The binary carries its program after the executable, so it must not be stripped.
