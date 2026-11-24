@@ -31,8 +31,9 @@ engine="$(sha flisk-cli-engine.tar.gz)"
 
 # The literal tag, because `version` is empty inside a resource block.
 base="$releases/download/$tag"
-mkdir -p Formula
-cat >Formula/flisk.rb <<EOF
+root="$(CDPATH= cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+mkdir -p "$root/Formula"
+cat >"$root/Formula/flisk.rb" <<EOF
 # Written by scripts/update-formula.sh. Do not edit by hand.
 class Flisk < Formula
   desc "Run your whole app locally with one command"
